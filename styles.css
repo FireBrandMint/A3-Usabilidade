@@ -1,0 +1,9 @@
+.clickable_test {
+    cursor: pointer;
+    color:black;
+    outline-color: transparent;
+}
+
+.clickable_test:hover {
+    color: blueviolet;
+}
