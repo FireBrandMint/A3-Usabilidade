@@ -62,6 +62,16 @@ function createWindow() {
     win.webContents.openDevTools();
 }
 
+var STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
+var ARGUMENT_NAMES = /([^\s,]+)/g;
+function get_param_names(func) {
+  var fnStr = func.toString().replace(STRIP_COMMENTS, '');
+  var result = fnStr.slice(fnStr.indexOf('(')+1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
+  if(result === null)
+     result = [];
+  return result;
+}
+
 const data_commands = data_manager.commands;
 const data_commands_prototype = Object.getPrototypeOf(data_commands);
 
@@ -73,6 +83,11 @@ for(var i in func_names)
     if((typeof curr).toString() == "function" && i !== undefined)
     {
         let f = curr;
+        const f_param_names = get_param_names(f);
+        
+        if(f_param_names.length < 1 || f_param_names[0] !== "event")
+            continue;
+
         console.log("Registered command called data." + f.name);
         ipc.on("data." + f.name, f);
     }
