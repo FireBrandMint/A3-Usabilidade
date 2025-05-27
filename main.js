@@ -4,7 +4,7 @@ const BrowserWindow = electron.BrowserWindow;
 const path = require("path");
 const url = require("url");
 const ipc = electron.ipcMain;
-const util = require('./js/util');
+const data_manager = require('./data_manager');
 
 let win;
 
@@ -62,12 +62,18 @@ function createWindow() {
     win.webContents.openDevTools();
 }
 
-for(var i in util)
+const data_commands = data_manager.commands;
+const data_commands_prototype = Object.getPrototypeOf(data_commands);
+
+let func_names = Object.getOwnPropertyNames(data_commands_prototype).filter((val) => val != "constructor");
+
+for(var i in func_names)
 {
-    if((typeof util[i]).toString() == "function")
+    let curr = data_commands[func_names[i]];
+    if((typeof curr).toString() == "function" && i !== undefined)
     {
-        let f = util[i];
-        console.log(f.name);
-        ipc.on(f.name, f);
+        let f = curr;
+        console.log("Registered command called data." + f.name);
+        ipc.on("data." + f.name, f);
     }
 }

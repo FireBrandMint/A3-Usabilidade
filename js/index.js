@@ -5,6 +5,8 @@ console.log("lol");
 
 createHtmlEvents();
 
+ipc.send("data.test");
+
 function createHtmlEvents()
 {
     foreachHtmlWithClass("clickable_test", (html_element) =>

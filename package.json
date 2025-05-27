@@ -2,6 +2,7 @@
     "name": "schedule-app",
     "version": "1.0.0",
     "main": "main.js",
+    "type": "commonjs",
     "devDependencies": {
         "electron": "^36.2.1"
     },
