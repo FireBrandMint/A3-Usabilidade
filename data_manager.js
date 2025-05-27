@@ -11,6 +11,7 @@ class Commands
             reminder: [],
             stopwatch: null
         };
+        this.folder_path = path.join(util.get_appdata(), "FBMClock");
         this.data_path = path.join(util.get_appdata(), "FBMClock", "data.json");
         this.load();
     }
@@ -25,15 +26,17 @@ class Commands
      */
     save(event, ...args)
     {
-        fs.writeFile(this.data_path, JSON.stringify(this.data), (err) => {
-            if(err)
-            {
-                console.error(err);
-                throw err;
-            }
-
+        if(!fs.existsSync(this.folder_path))
+            fs.mkdirSync(this.folder_path);
+        try
+        {
+            fs.writeFileSync(this.data_path, JSON.stringify(this.data));
             console.log("Saved data successfully.");
-        });
+        }
+        catch (err)
+        {
+            console.error(err);
+        }
     }
 
     /**
@@ -49,7 +52,13 @@ class Commands
         }
         catch (err)
         {
-            console.error(err);
+            if(err.message.startsWith("ENOENT: no such file or directory"))
+            {
+                this.save();
+                return;
+            }
+
+            console.log(err);
         }
     }
 
