@@ -55,6 +55,11 @@ class Commands
         this.saved_version = 0;
     }
 
+    eachSecond()
+    {
+        
+    }
+
     initialize()
     {
         this.calculate_scheduled();
@@ -171,5 +176,9 @@ class Commands
     }
 }
 
-exports.commands = new Commands();
-exports.commands.initialize();
+const commands = new Commands();
+
+setInterval(commands.eachSecond, 1000);
+
+exports.commands = commands;
+commands.initialize();
