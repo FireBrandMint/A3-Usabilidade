@@ -4,7 +4,7 @@ const BrowserWindow = electron.BrowserWindow;
 const path = require("path");
 const url = require("url");
 const ipc = electron.ipcMain;
-const data_manager = require('./data_manager');
+const data_manager = require('./js/data_manager');
 
 let win;
 
@@ -49,7 +49,7 @@ function createWindow() {
     });
     
     win.loadURL(url.format( {
-        pathname: path.join(__dirname, 'index.html'),
+        pathname: path.join(__dirname, 'test_index.html'),
         protocol: 'file',
         slashes: true
     } ));
