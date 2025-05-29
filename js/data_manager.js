@@ -1,6 +1,7 @@
 const util = require("./util");
 const fs = require("fs");
 const path = require("path");
+const uuidLib = require("uuid");
 
 //let ndate = Date.now();
 //the following produced the same number
@@ -54,6 +55,7 @@ class Commands
         this.data_path = path.join(util.get_appdata(), "FBMClock", "data.json");
         this.runtime_version = 0;
         this.saved_version = 0;
+        this.generate_id = uuidLib.v4;
     }
 
     eachSecond()
@@ -81,8 +83,9 @@ class Commands
                         break;
                 }
 
+                this.increment_version();
                 to_remove.push(i);
-                this.on_notification(curr);
+                this.push_notification(curr);
             }
         }
 
@@ -90,6 +93,8 @@ class Commands
         {
             today_notifs.splice(to_remove[i], 1);
         }
+
+        
     }
 
     initialize()
@@ -98,11 +103,11 @@ class Commands
     }
 
     /**
-     * @param {Function} on_notification 
+     * @param {Function} push_notification 
      */
-    initializeLoop(on_notification)
+    initializeLoop(push_notification)
     {
-        this.on_notification = on_notification;
+        this.push_notification = push_notification;
         setInterval(commands.eachSecond, 1000);
     }
 
@@ -118,16 +123,32 @@ class Commands
         for(const i in routine)
         {
             const r_element = routine[i];
-            if(r_element.week_day === date_now.getDay() && r_element.hour >= date_now.getHours())
+            if(
+                r_element.week_day === date_now.getDay() 
+                //&& r_element.hour >= date_now.getHours()
+            )
             {
-                if(r_element.hour !== date_now.getHours() || r_element.minute >= date_now.getMinutes())
-                {
+                //if(r_element.hour !== date_now.getHours() || r_element.minute >= date_now.getMinutes())
+                //{
                     let notif = new Date(now);
                     notif.setHours(r_element.hour, r_element.minute);
 
-                    this.day_scheduled_notifications.push({ type: "routine", timestamp: notif.getTime() });
-                }
+                    this.day_scheduled_notifications.push({ type: "routine", timestamp: notif.getTime(), id: r_element.id });
+                //}
             }
+        }
+
+        let today_end = new Date(now);
+        today_end.setHours(23, 59, 59);
+
+        const reminder = this.data.reminder;
+
+        for(const i in reminder)
+        {
+            const r_element = reminder[i];
+
+            if(r_element.when <= today_end.getTime())
+                 this.day_scheduled_notifications.push({ type: "reminder", title: r_element.title, description: r_element.description, timestamp: r_element.when, id: r_element.id });
         }
     }
 
@@ -190,14 +211,16 @@ class Commands
             throw new Error("Routine needs to have 2 args: hour and day of the week. (1 to 7 starting at sunday)");
         }
 
-        this.data.routine.push({ title: title, description: description, week_day: week_day, hour: hour, minute: minute });
+        const id = this.generate_id();
+
+        this.data.routine.push({ title: title, description: description, week_day: week_day, hour: hour, minute: minute, id: id });
 
         if(now_date.getDay() === week_day && now_date.getHours() <= hour)
         {
             if(now_date.getHours() !== hour || now_date.getMinutes() <= minute)
             {
                 now_date.setHours(hour, minute);
-                this.day_scheduled_notifications.push({ type: "routine", title: title, description: description, timestamp: now_date.getTime()});
+                this.day_scheduled_notifications.push({ type: "routine", title: title, description: description, timestamp: now_date.getTime(), id: id });
             }
         }
 
@@ -208,13 +231,15 @@ class Commands
     {
         var when = new Date(year, month - 1, day, hour, minute);
 
-        this.data.reminder.push({ title: title, description: description, when: when.getTime() })
+        const id = this.generate_id();
+
+        this.data.reminder.push({ title: title, description: description, when: when.getTime(), id: id })
 
         let now = Date.now();
 
         if(when.getTime() + 86400000 >= now)
         {
-            this.day_scheduled_notifications.push({ type: "reminder", title: title, description: description, timestamp: when.getTime()});
+            this.day_scheduled_notifications.push({ type: "reminder", title: title, description: description, timestamp: when.getTime(), id: id });
         }
 
         this.increment_version();
@@ -227,6 +252,86 @@ class Commands
     {
         //this.stopwatch_time = Date.now() + hours * 3600000 + minutes * 60000 + seconds * 1000;
         this.stopwatch_time = Date.now();
+    }
+
+    get_routines(event)
+    {
+        return this.data.routine;
+    }
+
+    get_reminders(event)
+    {
+        return this.data.reminder;
+    }
+
+    remove_routine(event, uuid)
+    {
+        const routine = this.data.routine;
+
+        let success = false;
+
+        for(const i in routine)
+        {
+            const curr = routine[i];
+            if(curr.id === uuid)
+            {
+                routine.splice(i, 1);
+                this.increment_version();
+                success = true;
+                break;
+            }
+        }
+
+        if(success)
+        {
+            const scheduled_today = this.day_scheduled_notifications;
+
+            for(const i in scheduled_today.length)
+            {
+                if(scheduled_today[i].id === uuid)
+                {
+                    scheduled_today.splice(i, 1);
+                    break;
+                }
+            }
+        }
+
+        console.log("removed_routine = " + success);
+    }
+
+    remove_reminder(event, uuid)
+    {
+        const reminder = this.data.reminder;
+
+        let success = false;
+
+        for(const i in reminder)
+        {
+            const curr = reminder[i];
+            if(curr.id === uuid)
+            {
+                reminder.splice(i, 1);
+                this.increment_version();
+                success = true;
+                break;
+            }
+        }
+
+        if(success)
+        {
+            const scheduled_today = this.day_scheduled_notifications;
+
+            for(const i in scheduled_today.length)
+            {
+                if(scheduled_today[i].id === uuid)
+                {
+                    scheduled_today.splice(i, 1);
+                    break;
+                }
+            }
+        }
+
+        console.log("removed_routine = " + success);
     }
 
     /**

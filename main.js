@@ -53,12 +53,13 @@ function beforeReady()
 
 function onReady()
 {
-    data_commands.initializeLoop(onTimeNotification);
+    data_commands.initializeLoop(pushTimeNotification);
     createWindow();
     //createHtmlEvents();
 }
 
-function onTimeNotification(data)
+//Pushes alarm notification to the UI.
+function pushTimeNotification(data)
 {
     
 }
