@@ -10,6 +10,11 @@ let win;
 
 beforeReady();
 
+const data_commands = data_manager.commands;
+const data_commands_prototype = Object.getPrototypeOf(data_commands);
+var STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
+var ARGUMENT_NAMES = /([^\s,]+)/g;
+
 //Initialization functions
 
 function beforeReady()
@@ -26,12 +31,37 @@ function beforeReady()
             createWindow();
         }
     });
+
+    let func_names = Object.getOwnPropertyNames(data_commands_prototype).filter((val) => val != "constructor");
+
+    for(var i in func_names)
+    {
+        let curr = data_commands[func_names[i]];
+        if((typeof curr).toString() == "function" && i !== undefined)
+        {
+            let f = curr;
+            const f_param_names = get_param_names(f);
+            
+            if(f_param_names.length < 1 || f_param_names[0] !== "event")
+                continue;
+
+            console.log("Registered command called data." + f.name);
+            ipc.on("data." + f.name, f);
+        }
+    }
 }
 
 function onReady()
 {
+    data_commands.initializeLoop(pushTimeNotification);
     createWindow();
     //createHtmlEvents();
+}
+
+//Pushes alarm notification to the UI.
+function pushTimeNotification(data)
+{
+    
 }
 
 //Functions that are called elsewhere
@@ -62,33 +92,10 @@ function createWindow() {
     win.webContents.openDevTools();
 }
 
-var STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
-var ARGUMENT_NAMES = /([^\s,]+)/g;
 function get_param_names(func) {
   var fnStr = func.toString().replace(STRIP_COMMENTS, '');
   var result = fnStr.slice(fnStr.indexOf('(')+1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
   if(result === null)
      result = [];
   return result;
-}
-
-const data_commands = data_manager.commands;
-const data_commands_prototype = Object.getPrototypeOf(data_commands);
-
-let func_names = Object.getOwnPropertyNames(data_commands_prototype).filter((val) => val != "constructor");
-
-for(var i in func_names)
-{
-    let curr = data_commands[func_names[i]];
-    if((typeof curr).toString() == "function" && i !== undefined)
-    {
-        let f = curr;
-        const f_param_names = get_param_names(f);
-        
-        if(f_param_names.length < 1 || f_param_names[0] !== "event")
-            continue;
-
-        console.log("Registered command called data." + f.name);
-        ipc.on("data." + f.name, f);
-    }
 }
