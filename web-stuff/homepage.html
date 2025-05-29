@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Routine Planner</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <nav>
+      <a data-view="dashboard" class="active">🏠 Dashboard</a>
+      <a data-view="rotinas">🗓️ Rotinas</a>
+      <a data-view="lembretes">🔔 Lembretes</a>
+      <a data-view="cronometro">⏱️ Cronômetro</a>
+      <a data-view="notificacoes">🛎️ Notificações</a>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <h1>Planejador</h1>
+    </header>
+
+    <!-- Dashboard -->
+    <section id="dashboard" class="view active">
+      <div class="dashboard">
+        <div class="card">
+          <h2>Próximas Rotinas</h2>
+          <p>08:00 – Meditar</p>
+          <p>14:00 – Estudar</p>
+        </div>
+        <div class="card">
+          <h2>Lembretes de Hoje</h2>
+          <p>Reunião às 16h</p>
+          <p>Pagar Contas às 10h</p>
+        </div>
+        <div class="card shortcut-buttons">
+          <h2>Atalhos</h2>
+          <button data-view="add-rotina">+ Nova Rotina</button>
+          <button data-view="add-lembrete">+ Novo Lembrete</button>
+          <button data-view="cronometro">▶️ Cronômetro</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Rotinas List -->
+    <section id="rotinas" class="view">
+      <div class="header-flex rotinas-header">
+        <h2>Rotinas</h2>
+        <button data-view="add-rotina">+ Adicionar Rotina</button>
+      </div>
+      <ul class="rotinas-list">
+        <li><span>Meditar <small>(Seg, Qua, Sex) - 08:00</small></span><span>✏️ ❌</span></li>
+        <li><span>Estudar <small>(Ter, Qui) - 14:00</small></span><span>✏️ ❌</span></li>
+      </ul>
+    </section>
+
+    <!-- Add Rotina Form -->
+    <section id="add-rotina" class="view">
+      <div class="header-flex">
+        <h2>Nova Rotina</h2>
+      </div>
+      <form id="rotinaForm">
+        <div class="form-group">
+          <label for="rotinaNome">Nome da Rotina</label>
+          <input type="text" id="rotinaNome" name="rotinaNome" required>
+        </div>
+        <div class="form-group">
+          <label for="rotinaDescricao">Descrição (opcional)</label>
+          <textarea id="rotinaDescricao" name="rotinaDescricao" rows="3"></textarea>
+        </div>
+        <div class="form-group dias-checkboxes">
+          <label>Dias</label>
+          <label><input type="checkbox" name="dias" value="Seg">Seg</label>
+          <label><input type="checkbox" name="dias" value="Ter">Ter</label>
+          <label><input type="checkbox" name="dias" value="Qua">Qua</label>
+          <label><input type="checkbox" name="dias" value="Qui">Qui</label>
+          <label><input type="checkbox" name="dias" value="Sex">Sex</label>
+          <label><input type="checkbox" name="dias" value="Sab">Sab</label>
+          <label><input type="checkbox" name="dias" value="Dom">Dom</label>
+        </div>
+        <div class="form-group">
+          <label for="rotinaHorario">Horário</label>
+          <input type="time" id="rotinaHorario" name="rotinaHorario" required>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="save-btn">Salvar</button>
+          <button type="button" class="cancel-btn" data-view="rotinas">Cancelar</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Lembretes List -->
+    <section id="lembretes" class="view">
+      <div class="header-flex lembretes-header">
+        <h2>Lembretes</h2>
+        <button data-view="add-lembrete">+ Adicionar Lembrete</button>
+      </div>
+      <ul class="lembretes-list">
+        <li><span>Reunião <small>(25/05/2025 16:00)</small></span><span>✏️ ❌</span></li>
+        <li><span>Pagar Contas <small>(27/05/2025 10:00)</small></span><span>✏️ ❌</span></li>
+      </ul>
+    </section>
+
+    <!-- Add Lembrete Form -->
+    <section id="add-lembrete" class="view">
+      <div class="header-flex">
+        <h2>Novo Lembrete</h2>
+      </div>
+      <form id="lembreteForm">
+        <div class="form-group">
+          <label for="lembreteTitulo">Título</label>
+          <input type="text" id="lembreteTitulo" name="lembreteTitulo" required>
+        </div>
+        <div class="form-group">
+          <label for="lembreteDescricao">Descrição (opcional)</label>
+          <textarea id="lembreteDescricao" name="lembreteDescricao" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="lembreteData">Data</label>
+          <input type="date" id="lembreteData" name="lembreteData" required>
+        </div>
+        <div class="form-group">
+          <label for="lembreteHorario">Horário</label>
+          <input type="time" id="lembreteHorario" name="lembreteHorario" required>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="save-btn">Salvar</button>
+          <button type="button" class="cancel-btn" data-view="lembretes">Cancelar</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Cronômetro -->
+    <section id="cronometro" class="view">
+      <div class="header-flex cronometro-header"><h2>Cronômetro</h2></div>
+      <div class="cronometro-display" id="display">00:00:00</div>
+      <div class="cronometro-buttons">
+        <button id="startBtn">▶️ Iniciar</button>
+        <button id="pauseBtn" disabled>⏸️ Pausar</button>
+        <button id="resetBtn" disabled>🔁 Reiniciar</button>
+      </div>
+    </section>
+
+    <!-- Notificações View -->
+    <section id="notificacoes" class="view">
+      <div class="header-flex"><h2>Notificação</h2></div>
+      <div class="notificacao-card">
+        <div><strong>Tipo:</strong> Lembrete</div>
+        <div><strong>Nome:</strong> Reunião</div>
+        <div><strong>Descrição:</strong> Reunião com a equipe em 25/05/2025 às 16:00.</div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const views = document.querySelectorAll('.view');
+
+    // Target == id of the view to show
+    function showView(target) {
+      // Toggle the active class for views
+      views.forEach(view => {
+        const isActive = view.id === target;
+        view.classList.toggle('active', isActive);
+      });
+
+      // Toggle the active class for sidebar links
+      const links = document.querySelectorAll('.sidebar nav a');
+
+      links.forEach(link => {
+        const isActive = link.getAttribute('data-view') === target;
+        link.classList.toggle('active', isActive);
+      });
+    }
+    
+    // Sidebar navigation
+    function setupSidebarNavigation() {
+      const links = document.querySelectorAll('.sidebar nav a');
+
+      links.forEach(link => {
+        link.addEventListener('click', e => {
+          e.preventDefault();
+
+          const targetView = link.getAttribute('data-view');
+          showView(targetView);
+        });
+      });
+    }
+
+    // Button navigation
+    function setupButtonNavigation() {
+      const buttons = document.querySelectorAll('button[data-view]');
+
+      buttons.forEach(button => {
+        button.addEventListener('click', () => {
+          const targetView = button.getAttribute('data-view');
+          showView(targetView);
+        });
+      });
+    }
+
+    // Initialize navigation
+    setupSidebarNavigation();
+    setupButtonNavigation();
+
+    // Cronômetro logic
+    let startTime = 0;
+    let elapsedTime = 0;
+    let intervalId;
+
+    const display = document.getElementById('display');
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // Format time into HH:MM:SS
+    function formatTime(time) {
+      const hours = String(Math.floor(time / 3600000)).padStart(2, '0');
+      const minutes = String(Math.floor((time % 3600000) / 60000)).padStart(2, '0');
+      const seconds = String(Math.floor((time % 60000) / 1000)).padStart(2, '0');
+      return `${hours}:${minutes}:${seconds}`;
+    }
+
+    // Start the timer
+    function startTimer() {
+      startTime = Date.now() - elapsedTime;
+      intervalId = setInterval(() => {
+        elapsedTime = Date.now() - startTime;
+        display.textContent = formatTime(elapsedTime);
+      }, 1000);
+
+      updateButtonStates({ start: true, pause: false, reset: false });
+    }
+
+    // Pause the timer
+    function pauseTimer() {
+      clearInterval(intervalId);
+      updateButtonStates({ start: false, pause: true });
+    }
+
+    // Reset the timer
+    function resetTimer() {
+      clearInterval(intervalId);
+      elapsedTime = 0;
+      display.textContent = '00:00:00';
+      updateButtonStates({ start: false, pause: true, reset: true });
+    }
+
+    // Update button states
+    function updateButtonStates({ start, pause, reset }) {
+      startBtn.disabled = start;
+      pauseBtn.disabled = pause;
+      resetBtn.disabled = reset;
+    }
+
+    // Event listeners
+    startBtn.addEventListener('click', startTimer);
+    pauseBtn.addEventListener('click', pauseTimer);
+    resetBtn.addEventListener('click', resetTimer);
+
+    // Form submissions
+    document.getElementById('rotinaForm').addEventListener('submit', e => {
+      e.preventDefault();
+
+      const rotinaNome = document.getElementById('rotinaNome').value;
+      const rotinaDescricao = document.getElementById('rotinaDescricao').value || 'Sem descrição';
+      const rotinaDias = Array.from(document.querySelectorAll('input[name="dias"]:checked'))
+        .map(input => input.value)
+        .join(', ') || 'Sem dias selecionados';
+      const rotinaHorario = document.getElementById('rotinaHorario').value;
+
+      // Todo: Criar nova rotina
+      alert(`Rotina:\nNome: ${rotinaNome}\nDescrição: ${rotinaDescricao}\nDias: ${rotinaDias}\nHorário: ${rotinaHorario}`);
+      showView('rotinas');
+    });
+
+    document.getElementById('lembreteForm').addEventListener('submit', e => {
+      e.preventDefault();
+
+      const lembreteTitulo = document.getElementById('lembreteTitulo').value;
+      const lembreteDescricao = document.getElementById('lembreteDescricao').value || 'Sem descrição';
+      const lembreteData = document.getElementById('lembreteData').value;
+      const lembreteHorario = document.getElementById('lembreteHorario').value;
+
+      // Todo: Criar novo lembrete
+      alert(`Lembrete:\nTítulo: ${lembreteTitulo}\nDescrição: ${lembreteDescricao}\nData: ${lembreteData}\nHorário: ${lembreteHorario}`);
+      showView('lembretes');
+    });
+  </script>
+</body>
+</html>
