@@ -8,17 +8,47 @@ const data_manager = require('./js/data_manager');
 
 let win;
 
-beforeReady();
-
 const data_commands = data_manager.commands;
 const data_commands_prototype = Object.getPrototypeOf(data_commands);
+
+beforeReady();
+
 var STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
 var ARGUMENT_NAMES = /([^\s,]+)/g;
 
 //Initialization functions
 
+/**
+ * @param {Function} fu
+ */
 function beforeReady()
 {
+    let func_names = Object.getOwnPropertyNames(data_commands_prototype).filter((val) => val != "constructor");
+
+
+    console.log("hello?");
+    for(var i in func_names)
+    {
+        const func_name = func_names[i];
+        let curr = data_commands[func_name];
+
+        if((typeof curr).toString() == "function" && i !== undefined)
+        {
+            let f = curr;
+            const f_param_names = get_param_names(f);
+            
+            if(f_param_names.length < 1 || f_param_names[0] !== "event")
+            {
+                continue;
+            }
+
+            console.log("Registered command called data." + f.name);
+            ipc.on("data." + f.name, f.bind(data_commands));
+        }
+    }
+
+    console.log(data_commands.data.routine);
+
     app.on('ready', onReady);
 
     app.on('window-all-closed', () => {
@@ -31,24 +61,6 @@ function beforeReady()
             createWindow();
         }
     });
-
-    let func_names = Object.getOwnPropertyNames(data_commands_prototype).filter((val) => val != "constructor");
-
-    for(var i in func_names)
-    {
-        let curr = data_commands[func_names[i]];
-        if((typeof curr).toString() == "function" && i !== undefined)
-        {
-            let f = curr;
-            const f_param_names = get_param_names(f);
-            
-            if(f_param_names.length < 1 || f_param_names[0] !== "event")
-                continue;
-
-            console.log("Registered command called data." + f.name);
-            ipc.on("data." + f.name, f);
-        }
-    }
 }
 
 function onReady()
@@ -79,7 +91,7 @@ function createWindow() {
     });
     
     win.loadURL(url.format( {
-        pathname: path.join(__dirname, 'test_index.html'),
+        pathname: path.join(__dirname, 'web-stuff', 'homepage.html'),
         protocol: 'file',
         slashes: true
     } ));
@@ -92,9 +104,15 @@ function createWindow() {
     win.webContents.openDevTools();
 }
 
+/**
+ * 
+ * @param {Function} func 
+ * @returns 
+ */
 function get_param_names(func) {
-  var fnStr = func.toString().replace(STRIP_COMMENTS, '');
-  var result = fnStr.slice(fnStr.indexOf('(')+1, fnStr.indexOf(')')).match(ARGUMENT_NAMES);
+  var fnStr = func.toString().replace(STRIP_COMMENTS, '').replace(' ', '');
+  var result = fnStr.slice(fnStr.indexOf('(')+1, fnStr.indexOf(')')).split(',');
+  //.match(ARGUMENT_NAMES)
   if(result === null)
      result = [];
   return result;

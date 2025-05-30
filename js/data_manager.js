@@ -89,7 +89,7 @@ class Commands
             }
         }
 
-        for(i = to_remove.length - 1; i >= 0; i--)
+        for(let i = to_remove.length - 1; i >= 0; i--)
         {
             today_notifs.splice(to_remove[i], 1);
         }
@@ -157,8 +157,8 @@ class Commands
     //data.<function>
 
     /**
-     * @param {Electron.IpcMain} event
-     * @param {any[]} args
+     *
+     * @param {Electron.IpcMainEvent} event
      */
     save(event)
     {
@@ -177,8 +177,8 @@ class Commands
     }
 
     /**
-     * @param {Electron.IpcMain} event
-     * @param {any[]} args
+     *
+     * @param {Electron.IpcMainEvent} event
      */
     load(event)
     {
@@ -200,7 +200,7 @@ class Commands
     }
 
     /**
-     * @param {Electron.IpcMain} event
+     * @param {Electron.IpcMainEvent} event
     */
     create_routine(event, title, description, week_day, hour, minute)
     {
@@ -246,7 +246,7 @@ class Commands
     }
 
     /**
-     * @param {Electron.IpcMain} event
+     * @param {Electron.IpcMainEvent} event
     */
     create_stopwatch(event)
     {
@@ -254,14 +254,23 @@ class Commands
         this.stopwatch_time = Date.now();
     }
 
+    /**
+     * @param {Electron.IpcMainEvent} event
+    */
     get_routines(event)
     {
-        return this.data.routine;
+        console.log(this.data.routine);
+        event.returnValue = this.data.routine;
+        return;
     }
 
+    /**
+     * @param {Electron.IpcMainEvent} event
+    */
     get_reminders(event)
     {
-        return this.data.reminder;
+        event.returnValue = this.data.reminder;
+        return;
     }
 
     remove_routine(event, uuid)
@@ -340,19 +349,26 @@ class Commands
     get_stopwatch(event, hours, minutes, seconds)
     {
         if(this.stopwatch_time === null)
-            return null;
+        {
+            event.returnValue = null;
+            return;
+        }
 
         //https://www.electronjs.org/docs/latest/api/ipc-renderer
-        return { hours: elapsed / 3600000, minutes: (elapsed / 60000) % 60, seconds: (elapsed / 1000) % 60 };
+        event.returnValue =  { hours: elapsed / 3600000, minutes: (elapsed / 60000) % 60, seconds: (elapsed / 1000) % 60 };
+        return;
     }
 
     /**
-     * @param {Electron.IpcMain} event
+     * @param {Electron.IpcMainEvent} event
     */
     stop_stopwatch(event)
     {
         if(this.stopwatch_time === null)
-            return null;
+        {
+            event.returnValue = null;
+            return;
+        }
 
         let now = Date.now();
 
@@ -366,7 +382,8 @@ class Commands
         this.stopwatch_time = null;
         this.stopwatch_time = null;
 
-        return { hours: elapsed / 3600000, minutes: (elapsed / 60000) % 60, seconds: (elapsed / 1000) % 60 };
+        event.returnValue = { hours: elapsed / 3600000, minutes: (elapsed / 60000) % 60, seconds: (elapsed / 1000) % 60 };
+        return;
     }
 
     test(event, ...args)

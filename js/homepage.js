@@ -1,10 +1,48 @@
+const electron = require('electron');
+const ipc = electron.ipcRenderer;
+
+let routine = [];
+let reminder = [];
+
 const views = document.querySelectorAll('.view');
+
+let onViewSelect = new Map();
+/**
+ * @param {Element} view
+ */
+onViewSelect.set("rotinas",
+    /**
+    * @param {Element} view
+    */
+    (view) => {
+        getRoutines();
+        const htmlroutine_list = view.getElementsByClassName("rotinas-list")[0];
+        clearChildren(htmlroutine_list);
+
+        for(const i in routine)
+        {
+            const curr = routine[i];
+
+            const to_append = document.createElement("li");
+            const append_span = document.createElement("span");
+            append_span.textContent = curr.title;
+            const append_small = document.createElement("small");
+            append_small.textContent = toWeekDay(curr.week_day);
+            append_span.appendChild(append_small);
+            to_append.appendChild(append_span);
+            htmlroutine_list.appendChild(to_append);
+        }
+});
 
 // Target == id of the view to show
 function showView(target) {
     // Toggle the active class for views
     views.forEach(view => {
         const isActive = view.id === target;
+        //Executes the initialization function of the view.
+        if(isActive && onViewSelect.has(target))
+            onViewSelect.get(target)(view);
+
         view.classList.toggle('active', isActive);
     });
 
@@ -13,6 +51,7 @@ function showView(target) {
 
     links.forEach(link => {
     const isActive = link.getAttribute('data-view') === target;
+
     link.classList.toggle('active', isActive);
     });
 }
@@ -130,3 +169,60 @@ document.getElementById('lembreteForm').addEventListener('submit', e => {
     alert(`Lembrete:\nTítulo: ${lembreteTitulo}\nDescrição: ${lembreteDescricao}\nData: ${lembreteData}\nHorário: ${lembreteHorario}`);
     showView('lembretes');
 });
+/**
+ * 
+ * @param {Element} element 
+ */
+function clearChildren(element)
+{
+    while (element.firstChild)
+    {
+        element.removeChild(element.lastChild);
+    }
+}
+
+function toWeekDay(dayNum)
+{
+    let result;
+
+    switch(dayNum)
+    {
+        case 1:
+            result = "Dom"
+            break;
+        case 2:
+            result = "Seg"
+            break;
+        case 3:
+            result = "Ter"
+            break;
+        case 4:
+            result = "Qua"
+            break;
+        case 5:
+            result = "Qui"
+            break;
+        case 6:
+            result = "Sex"
+            break;
+        case 7:
+            result = "Sab"
+            break;
+    }
+
+    return result;
+}
+
+function getRoutines()
+{
+    const result = ipc.sendSync("data.get_routines");
+    routine = result;
+    return result;
+}
+
+function getReminders()
+{
+    const result = ipc.sendSync("data.get_reminders");
+    reminder = result;
+    return result;
+}
