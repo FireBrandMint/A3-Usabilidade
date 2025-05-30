@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Routine Planner</title>
-  <link rel="stylesheet" href="css/styles.css">
+
+  <link rel="stylesheet" href="css/homepage.css">
 </head>
 <body>
   <aside class="sidebar">
@@ -51,8 +52,13 @@
         <button data-view="add-rotina">+ Adicionar Rotina</button>
       </div>
       <ul class="rotinas-list">
-        <li><span>Meditar <small>(Seg, Qua, Sex) - 08:00</small></span><span>✏️ ❌</span></li>
-        <li><span>Estudar <small>(Ter, Qui) - 14:00</small></span><span>✏️ ❌</span></li>
+        <li>
+          <span>Meditar <small>(Seg, Qua, Sex) - 08:00</small></span>
+          <span>
+            <button class="rotina-edit-btn">✏️ Editar</button>
+            <button class="rotina-delete-btn">❌ Excluir</button>
+          </span>
+        </li>
       </ul>
     </section>
 
@@ -98,8 +104,13 @@
         <button data-view="add-lembrete">+ Adicionar Lembrete</button>
       </div>
       <ul class="lembretes-list">
-        <li><span>Reunião <small>(25/05/2025 16:00)</small></span><span>✏️ ❌</span></li>
-        <li><span>Pagar Contas <small>(27/05/2025 10:00)</small></span><span>✏️ ❌</span></li>
+        <li>
+          <span>Reunião <small>(25/05/2025 16:00)</small></span>
+          <span>
+            <button class="lembrete-edit-btn">✏️ Editar</button>
+            <button class="lembrete-delete-btn">❌ Excluir</button>
+          </span>
+        </li>
       </ul>
     </section>
 
@@ -140,16 +151,6 @@
         <button id="startBtn">▶️ Iniciar</button>
         <button id="pauseBtn" disabled>⏸️ Pausar</button>
         <button id="resetBtn" disabled>🔁 Reiniciar</button>
-      </div>
-    </section>
-
-    <!-- Notificações View -->
-    <section id="notificacoes" class="view">
-      <div class="header-flex"><h2>Notificação</h2></div>
-      <div class="notificacao-card">
-        <div><strong>Tipo:</strong> Lembrete</div>
-        <div><strong>Nome:</strong> Reunião</div>
-        <div><strong>Descrição:</strong> Reunião com a equipe em 25/05/2025 às 16:00.</div>
       </div>
     </section>
   </div>

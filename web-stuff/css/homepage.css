@@ -72,7 +72,7 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1rem;
 }
-.card, .notificacao-card {
+.card {
   background: white;
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -81,7 +81,7 @@ body {
   flex-direction: column;
   gap: 0.2rem;
 }
-.card h2, .notificacao-card h2 {
+.card h2 {
   font-size: 1rem;
   margin-bottom: 0.5rem;
 }
@@ -115,14 +115,14 @@ body {
 
 /* Lists */
 .rotinas-list,
-.lembretes-list,
-.notificacoes-list {
+.lembretes-list
+ {
   list-style: none;
   padding: 0;
 }
 .rotinas-list li,
-.lembretes-list li,
-.notificacoes-list li {
+.lembretes-list li
+{
   padding: 0.75rem;
   border: 1px solid #ddd;
   border-radius: 6px;
@@ -132,6 +132,33 @@ body {
   align-items: center;
 }
 
+.rotina-edit-btn, .lembrete-edit-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.rotina-delete-btn, .lembrete-delete-btn {
+  background-color: #ca1b0f;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.rotina-edit-btn:hover, .lembrete-edit-btn:hover {
+  background-color: #45a049;
+}
+
+.rotina-delete-btn:hover, .lembrete-delete-btn:hover {
+  background-color: #940a0a;
+}
 /* Form fields */
 .form-group {
   margin-bottom: 0.75rem;

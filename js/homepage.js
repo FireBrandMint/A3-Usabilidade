@@ -226,3 +226,9 @@ function getReminders()
     reminder = result;
     return result;
 }
+
+document.querySelectorAll('.rotina-edit-btn, .rotina-delete-btn, .lembrete-edit-btn, .lembrete-delete-btn').forEach(button => {
+  button.addEventListener('click', (event) => {
+    console.log(`Botão apertado: ${event.target.classList}`);
+  });
+});
