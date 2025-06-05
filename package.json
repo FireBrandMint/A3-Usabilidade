@@ -1,6 +1,8 @@
 {
   "name": "schedule-app",
   "version": "1.0.0",
+  "description": "Um app para agendar tarefas e notificações",
+  "author": "Guilherme e Lucas",
   "main": "main.js",
   "type": "commonjs",
   "devDependencies": {
