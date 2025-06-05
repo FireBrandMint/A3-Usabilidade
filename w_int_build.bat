@@ -1,1 +1,0 @@
-npx electron-packager . export --platform=win32 --arch=x64
