@@ -414,7 +414,7 @@ class Commands
         }
 
         console.log("removed_routine = " + success);
-        if (event !== undefined && event !== null) event.returnValue = removed;
+        if (event !== undefined && event !== null) event.returnValue = success;
     }
 
     /**

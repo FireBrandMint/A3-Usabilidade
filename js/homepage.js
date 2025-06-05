@@ -200,6 +200,8 @@ function onRoutineEdit(index)
     });
     document.getElementById('rotinaHorario').value = toDoubleDigit(curr.hour) + ':' + toDoubleDigit(curr.minute);
 
+    editing_routine = curr;
+
     showView("add-rotina");
 }
 
@@ -306,7 +308,7 @@ function startTimer() {
     else
     {
         ipc.sendSync("data.stop_stopwatch");
-        display.textContent = "00:00:00";
+        //display.textContent = "00:00:00";
         startBtn.textContent = "▶️ Iniciar";
         updateButtonStates({ start: false, pause: true, reset: true });
     }
@@ -347,8 +349,8 @@ setInterval(() => {
     const time_got = ipc.sendSync("data.get_stopwatch");
     if(time_got === null)
     {
-        display.textContent = formatTime(0);
-        return
+        //display.textContent = formatTime(0);
+        return;
     }
     display.textContent = formatTime(time_got);
 }, 200)
@@ -379,7 +381,7 @@ document.getElementById('rotinaForm').addEventListener('submit',
     const rotinaDias = Array.from(document.querySelectorAll('input[name="dias"]:checked'))
     .map(input => toWeekDayNum(input.value))
     //.join(', ') || 'Sem dias selecionados';
-    console.log(rotinaDias);
+    //console.log(rotinaDias);
     /**
      * @type {string}
      */
@@ -390,9 +392,13 @@ document.getElementById('rotinaForm').addEventListener('submit',
     //alert(`Rotina:\nNome: ${rotinaNome}\nDescrição: ${rotinaDescricao}\nDias: ${rotinaDias}\nHorário: ${rotinaHorario}`);
     //console.log([rotinaNome, rotinaDescricao, rotinaDias, Number.parseInt(horario_elems[0]), Number.parseInt(horario_elems[1])]);
     ipc.sendSync("data.create_routine", rotinaNome, rotinaDescricao, rotinaDias, Number.parseInt(horario_elems[0]), Number.parseInt(horario_elems[1]));
+    if(editing_routine != null) console.log(editing_routine.id);
+    console.log("is this working")
 
     if(editing_routine != null)
         ipc.sendSync("data.remove_routine", editing_routine.id);
+
+    console.log("reached");
     showView('rotinas');
 });
 
