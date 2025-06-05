@@ -73,13 +73,14 @@ class Commands
         {
             let curr = today_notifs[i];
 
-            if(now <= curr.timestamp)
+            if(now >= curr.timestamp)
             {
                 switch (curr.type)
                 {
                     case "routine":
                         break;
                     case "reminder":
+                        this.remove_reminder(null, curr.id);
                         break;
                 }
 
@@ -97,8 +98,17 @@ class Commands
         
     }
 
+    eachHalfMinute()
+    {
+        if(this.saved_version != this.runtime_version)
+        {
+            this.save();
+        }
+    }
+
     initialize()
     {
+        this.load(null);
         this.calculate_scheduled();
     }
 
@@ -108,7 +118,8 @@ class Commands
     initializeLoop(push_notification)
     {
         this.push_notification = push_notification;
-        setInterval(commands.eachSecond, 1000);
+        setInterval(commands.eachSecond.bind(this), 1000);
+        setInterval(this.eachHalfMinute.bind(this), 30000)
     }
 
     calculate_scheduled(now)
@@ -123,8 +134,21 @@ class Commands
         for(const i in routine)
         {
             const r_element = routine[i];
+            const week_day = r_element.week_day;
+
+            let is_date = false;
+
+            for(const i2 in week_day)
+            {
+                if(date_now.getDay() === week_day[i2])
+                {
+                    is_date = true;
+                    break;
+                }
+            }
+
             if(
-                r_element.week_day === date_now.getDay() 
+                is_date && date_now.getHours() <= r_element.hour && (date_now.getHours() !== r_element.hour || date_now.getMinutes() <= r_element.minute)
                 //&& r_element.hour >= date_now.getHours()
             )
             {
@@ -132,8 +156,7 @@ class Commands
                 //{
                     let notif = new Date(now);
                     notif.setHours(r_element.hour, r_element.minute);
-
-                    this.day_scheduled_notifications.push({ type: "routine", timestamp: notif.getTime(), id: r_element.id });
+                    this.day_scheduled_notifications.push({ type: "routine", title: r_element.title, description: r_element.description, timestamp: notif.getTime(), id: r_element.id });
                 //}
             }
         }
@@ -186,6 +209,17 @@ class Commands
         {
             let json_data = fs.readFileSync(this.data_path);
             this.data = JSON.parse(json_data);
+
+            const now = new Date(Date.now());
+            const reminder = this.data.reminder;
+            const routine = this.data.routine;
+
+            //debug code, remove on release
+            //if(reminder.length == 0)
+            //    reminder.push({ title: "startthing", description: "description here", when: now.getTime() + 300000, id: this.generate_id() });
+
+            //if(routine.length == 0)
+            //    routine.push({ title: "debug title", description: "desc here", week_day: [now.getDay()], hour: now.getHours() + 2, minute: now.getMinutes(), id: this.generate_id() });
         }
         catch (err)
         {
@@ -202,34 +236,53 @@ class Commands
     /**
      * @param {Electron.IpcMainEvent} event
     */
-    create_routine(event, title, description, week_day, hour, minute)
+    create_routine(event, title, description, week_days, hour, minute)
     {
         let now_date = new Date(Date.now());
 
-        if(check_args([week_day, hour, minute], "number", "number", "number"))
-        {
-            throw new Error("Routine needs to have 2 args: hour and day of the week. (1 to 7 starting at sunday)");
-        }
-
         const id = this.generate_id();
 
-        this.data.routine.push({ title: title, description: description, week_day: week_day, hour: hour, minute: minute, id: id });
+        this.data.routine.push({ title: title, description: description, week_day: week_days, hour: hour, minute: minute, id: id });
+        console.log(this.data.routine);
 
-        if(now_date.getDay() === week_day && now_date.getHours() <= hour)
+        let is_date = false;
+
+        console.log(now_date.getDay())
+
+        for(const i in week_days)
+        {
+            if(now_date.getDay() === week_days[i])
+            {
+                is_date = true;
+                break;
+            }
+        }
+
+        if(is_date && now_date.getHours() <= hour)
         {
             if(now_date.getHours() !== hour || now_date.getMinutes() <= minute)
             {
-                now_date.setHours(hour, minute);
-                this.day_scheduled_notifications.push({ type: "routine", title: title, description: description, timestamp: now_date.getTime(), id: id });
+                console.log(hour + ":" + minute);
+                let then = new Date(now_date.getTime());
+                then.setHours(hour, minute);
+
+                console.log(then.getHours() + ":" + then.getMinutes());
+
+                console.log("pushed the notif");
+                this.day_scheduled_notifications.push({ type: "routine", title: title, description: description, timestamp: then.getTime(), id: id });
             }
         }
 
         this.increment_version();
+
+        event.returnValue = null;
     }
 
     create_reminder(event, title, description, year, month, day, hour, minute)
     {
         var when = new Date(year, month - 1, day, hour, minute);
+
+        console.log(when.toLocaleString());
 
         const id = this.generate_id();
 
@@ -237,7 +290,7 @@ class Commands
 
         let now = Date.now();
 
-        if(when.getTime() + 86400000 >= now)
+        if(when.getTime() + 86400000 >= now || when.getTime() < now)
         {
             this.day_scheduled_notifications.push({ type: "reminder", title: title, description: description, timestamp: when.getTime(), id: id });
         }
@@ -248,10 +301,22 @@ class Commands
     /**
      * @param {Electron.IpcMainEvent} event
     */
-    create_stopwatch(event)
+    create_stopwatch(event, keep_pause)
     {
         //this.stopwatch_time = Date.now() + hours * 3600000 + minutes * 60000 + seconds * 1000;
-        this.stopwatch_time = Date.now();
+        const now = Date.now();
+        this.stopwatch_time = now;
+
+        if(keep_pause !== undefined && keep_pause && this.stopwatch_pause !== null)
+        {
+            this.stopwatch_pause = now;
+            event.returnValue = null;
+            return;
+        }
+
+        this.stopwatch_pause = null;
+
+        event.returnValue = null;
     }
 
     /**
@@ -259,7 +324,7 @@ class Commands
     */
     get_routines(event)
     {
-        console.log(this.data.routine);
+        //console.log(this.data.routine);
         event.returnValue = this.data.routine;
         return;
     }
@@ -279,11 +344,14 @@ class Commands
 
         let success = false;
 
+        let removed = null;
+
         for(const i in routine)
         {
             const curr = routine[i];
             if(curr.id === uuid)
             {
+                removed = curr;
                 routine.splice(i, 1);
                 this.increment_version();
                 success = true;
@@ -306,6 +374,7 @@ class Commands
         }
 
         console.log("removed_routine = " + success);
+        event.returnValue = removed;
     }
 
     remove_reminder(event, uuid)
@@ -314,12 +383,16 @@ class Commands
 
         let success = false;
 
+        let removed = null;
+
         for(const i in reminder)
         {
             const curr = reminder[i];
             if(curr.id === uuid)
             {
+                removed = curr;
                 reminder.splice(i, 1);
+                console.log("did it.");
                 this.increment_version();
                 success = true;
                 break;
@@ -341,12 +414,33 @@ class Commands
         }
 
         console.log("removed_routine = " + success);
+        if (event !== undefined && event !== null) event.returnValue = removed;
     }
 
     /**
      * @param {Electron.IpcMain} event
     */
-    get_stopwatch(event, hours, minutes, seconds)
+    toggle_pause_stopwatch(event)
+    {
+        if(this.stopwatch_time === null)
+            return;
+
+        const now = Date.now();
+
+        if(this.stopwatch_pause === null)
+        {
+            this.stopwatch_pause = now;
+            return;
+        }
+
+        this.stopwatch_time += now - this.stopwatch_pause;
+        this.stopwatch_pause = null;
+    }
+
+    /**
+     * @param {Electron.IpcMain} event
+    */
+    get_stopwatch(event)
     {
         if(this.stopwatch_time === null)
         {
@@ -354,8 +448,17 @@ class Commands
             return;
         }
 
+        const now = Date.now();
+
+        let elapsed = now - this.stopwatch_time;
+
+        if(this.stopwatch_pause !== null)
+        {
+            elapsed -= now - this.stopwatch_pause;
+        }
+
         //https://www.electronjs.org/docs/latest/api/ipc-renderer
-        event.returnValue =  { hours: elapsed / 3600000, minutes: (elapsed / 60000) % 60, seconds: (elapsed / 1000) % 60 };
+        event.returnValue = elapsed;
         return;
     }
 
@@ -382,7 +485,8 @@ class Commands
         this.stopwatch_time = null;
         this.stopwatch_time = null;
 
-        event.returnValue = { hours: elapsed / 3600000, minutes: (elapsed / 60000) % 60, seconds: (elapsed / 1000) % 60 };
+        //{ hours: elapsed / 3600000, minutes: (elapsed / 60000) % 60, seconds: (elapsed / 1000) % 60 }
+        event.returnValue = elapsed;
         return;
     }
 

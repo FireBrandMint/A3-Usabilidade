@@ -1,16 +1,20 @@
 const electron = require('electron');
 const ipc = electron.ipcRenderer;
 
+let editing_routine = null;
+let editing_reminder = null;
+
 let routine = [];
 let reminder = [];
 
 const views = document.querySelectorAll('.view');
 
-let onViewSelect = new Map();
-/**
- * @param {Element} view
- */
-onViewSelect.set("rotinas",
+let currentView = "dashboard";
+
+let editingObj = null;
+
+let onViewOpen = new Map();
+onViewOpen.set("rotinas",
     /**
     * @param {Element} view
     */
@@ -23,28 +27,217 @@ onViewSelect.set("rotinas",
         {
             const curr = routine[i];
 
-            const to_append = document.createElement("li");
+            const li = document.createElement("li");
             const append_span = document.createElement("span");
-            append_span.textContent = curr.title;
-            const append_small = document.createElement("small");
-            append_small.textContent = toWeekDay(curr.week_day);
-            append_span.appendChild(append_small);
-            to_append.appendChild(append_span);
-            htmlroutine_list.appendChild(to_append);
+            let titlevisible = curr.title + " (";
+            /**
+             * @type {string[]}
+             */
+            const week_day = curr.week_day;
+            for(const i in week_day)
+            {
+                titlevisible += toWeekDay(week_day[i]);
+                if(i != week_day.length - 1)
+                    titlevisible += ", ";
+            }
+            titlevisible += ")";
+            append_span.textContent = titlevisible;
+            //const append_small = document.createElement("small");
+            //append_small.textContent = toWeekDay(week_day);
+            //append_span.appendChild(append_small);
+            const span = document.createElement('span');
+            const btn_edit = document.createElement('button');
+            btn_edit.className = "rotina-edit-btn";
+            btn_edit.textContent = "✏️ Editar";
+            btn_edit.addEventListener('click', e => {
+                e.preventDefault();
+
+                onRoutineEdit(i);
+            });
+            span.appendChild(btn_edit);
+            const btn_delete = document.createElement('button');
+            btn_delete.className = "rotina-delete-btn";
+            btn_delete.textContent = "❌ Excluir";
+            btn_delete.addEventListener('click', e => {
+                e.preventDefault();
+
+                onRoutineDelete(i);
+            });
+            span.appendChild(btn_delete);
+            li.appendChild(append_span);
+            li.appendChild(span);
+            htmlroutine_list.appendChild(li);
         }
+});
+
+onViewOpen.set("lembretes",
+    /**
+    * @param {Element} view
+    */
+    (view) => {
+        //console.log("hi");
+        getReminders();
+        const htmlreminder_list = view.getElementsByClassName("lembretes-list")[0];
+
+        htmlreminder_list.innerHTML = "";
+
+        for(const i in reminder)
+        {
+            const curr = reminder[i];
+            const time = new Date(curr.when);
+            const li = document.createElement('li');
+            li.innerHTML = "<span>" + curr.title + "<small> (" + time.toLocaleDateString() + ' ' + time.getHours() + ':' + time.getMinutes() + ")</small></span>";
+            //<span><button class=\"lembrete-edit-btn\">✏️ Editar</button><button class=\"lembrete-delete-btn\">❌ Excluir</button></span>
+            const span = document.createElement('span');
+            const btn_edit = document.createElement('button');
+            btn_edit.className = "lembrete-edit-btn";
+            btn_edit.textContent = "✏️ Editar";
+            btn_edit.addEventListener('click', e => {
+                e.preventDefault();
+
+                onReminderEdit(i);
+            });
+            span.appendChild(btn_edit);
+            const btn_delete = document.createElement('button');
+            btn_delete.className = "lembrete-delete-btn";
+            btn_delete.textContent = "❌ Excluir";
+            btn_delete.addEventListener('click', e => {
+                e.preventDefault();
+
+                onReminderDelete(i);
+            });
+            span.appendChild(btn_delete);
+            li.appendChild(span);
+            htmlreminder_list.appendChild(li);
+            //elems_html += "<li><span>" + curr.title + "<small> (" + time.toLocaleDateString() + ' ' + time.getHours() + ':' + time.getMinutes() + ")</small></span><span><button class=\"lembrete-edit-btn\">✏️ Editar</button><button class=\"lembrete-delete-btn\">❌ Excluir</button></span></li>"
+        }
+
+        //htmlreminder_list.innerHTML = elems_html;
+    }
+)
+
+let onViewClosed = new Map();
+
+onViewClosed.set("add-lembrete",
+    (view) =>{
+        editing_reminder = null;
+        document.getElementById('lembreteTitulo').value = '';
+        document.getElementById('lembreteDescricao').value = '';
+        document.getElementById('lembreteData').value = '';
+        document.getElementById('lembreteHorario').value = '';
+});
+
+onViewClosed.set("add-rotina", 
+    (view) => {
+        editing_routine = null;
+        document.getElementById('rotinaNome').value = '';
+        document.getElementById('rotinaDescricao').value = '';
+        document.getElementsByName("dias").forEach((elem) => elem.checked = false);
+        document.getElementById('rotinaHorario').value = '';
+    }
+)
+
+/**
+ * 
+ * @param {number} index 
+ */
+function onReminderEdit(index)
+{
+    console.log("Editing " + reminder[index].id);
+    const curr = reminder[index];
+    const when = new Date(curr.when);
+    document.getElementById('lembreteTitulo').value = curr.title;
+    document.getElementById('lembreteDescricao').value = curr.description;
+    console.log(when.getFullYear() + '-' + (when.getMonth() + 1) + '-' + when.getDate());
+    document.getElementById('lembreteData').value = when.getFullYear() + '-' + toDoubleDigit(when.getMonth() + 1) + '-' + toDoubleDigit(when.getDate());
+    document.getElementById('lembreteHorario').value = toDoubleDigit(when.getHours()) + ':' + toDoubleDigit(when.getMinutes());
+    editing_reminder = curr;
+
+    showView("add-lembrete")
+}
+
+/**
+ * 
+ * @param {number} index 
+ */
+function onReminderDelete(index)
+{
+    const curr = reminder[index];
+    ipc.sendSync("data.remove_reminder", curr.id);
+    onViewOpen.get("lembretes")(document.getElementById("lembretes"));
+}
+
+function onRoutineEdit(index)
+{
+    console.log(index);
+    const curr = routine[index];
+    /**
+     * @type {number[]}
+     */
+    const days = curr.week_day;
+    document.getElementById('rotinaNome').value = curr.title;
+    document.getElementById('rotinaDescricao').value = curr.description;
+    console.log(days);
+    console.log(Array.from(document.getElementsByName("dias")));
+    Array.from(document.getElementsByName("dias")).forEach((elem) => {
+        let checked = false;
+        console.log(toWeekDayNum(elem.getAttribute("value")));
+        for(const i in days)
+        {
+            //console.log(elem.getAttribute("value"));
+            //console.log(toWeekDayNum(elem.getAttribute("value")));
+            if(days[i] === toWeekDayNum(elem.getAttribute("value")))
+            {
+                checked = true;
+                break;
+            }
+        }
+
+        console.log(checked);
+
+        elem.checked = checked;
+        //elem.setAttribute("checked", checked);
+    });
+    document.getElementById('rotinaHorario').value = toDoubleDigit(curr.hour) + ':' + toDoubleDigit(curr.minute);
+
+    showView("add-rotina");
+}
+
+function onRoutineDelete(index)
+{
+    console.log(index);
+    ipc.sendSync("data.remove_routine", routine[index].id);
+    onViewOpen.get("rotinas")(document.getElementById("rotinas"));
+}
+
+ipc.on('reminder_updated', (event) => {
+    if(currentView === "lembretes")
+    {
+        getReminders();
+        onViewOpen.get("lembretes")(document.getElementById("lembretes"));
+    }
 });
 
 // Target == id of the view to show
 function showView(target) {
     // Toggle the active class for views
-    views.forEach(view => {
-        const isActive = view.id === target;
-        //Executes the initialization function of the view.
-        if(isActive && onViewSelect.has(target))
-            onViewSelect.get(target)(view);
 
-        view.classList.toggle('active', isActive);
-    });
+    console.log("Switched to view ID " + target + ".");
+
+    const tobclosed = document.getElementById(currentView);
+    const tobopened = document.getElementById(target);
+
+    if(onViewClosed.has(currentView))
+        onViewClosed.get(currentView)(tobclosed);
+
+    tobclosed.classList.toggle('active', false);
+
+    if(onViewOpen.has(target))
+        onViewOpen.get(target)(tobopened);
+
+    tobopened.classList.toggle('active', true);
+
+    currentView = target;
 
     // Toggle the active class for sidebar links
     const links = document.querySelectorAll('.sidebar nav a');
@@ -86,15 +279,13 @@ function setupButtonNavigation() {
 setupSidebarNavigation();
 setupButtonNavigation();
 
-// Cronômetro logic
-let startTime = 0;
-let elapsedTime = 0;
-let intervalId;
-
 const display = document.getElementById('display');
 const startBtn = document.getElementById('startBtn');
 const pauseBtn = document.getElementById('pauseBtn');
 const resetBtn = document.getElementById('resetBtn');
+let pause_state = true;
+
+updateButtonStates({ start: false, pause: true, reset: true });
 
 // Format time into HH:MM:SS
 function formatTime(time) {
@@ -106,31 +297,65 @@ function formatTime(time) {
 
 // Start the timer
 function startTimer() {
-    startTime = Date.now() - elapsedTime;
-    intervalId = setInterval(() => {
-    elapsedTime = Date.now() - startTime;
-    display.textContent = formatTime(elapsedTime);
-    }, 1000);
-
-    updateButtonStates({ start: true, pause: false, reset: false });
+    if(ipc.sendSync("data.get_stopwatch") == null)
+    {
+        startBtn.textContent = "Parar ⏹️";
+        ipc.sendSync("data.create_stopwatch");
+        updateButtonStates({ start: false, pause: false, reset: false });
+    }
+    else
+    {
+        ipc.sendSync("data.stop_stopwatch");
+        display.textContent = "00:00:00";
+        startBtn.textContent = "▶️ Iniciar";
+        updateButtonStates({ start: false, pause: true, reset: true });
+    }
+    //startTime = Date.now() - elapsedTime;
+    //intervalId = setInterval(() => {
+    //elapsedTime = Date.now() - startTime;
+    //display.textContent = formatTime(elapsedTime);
+    //}, 1000);
 }
 
 // Pause the timer
 function pauseTimer() {
-    clearInterval(intervalId);
-    updateButtonStates({ start: false, pause: true });
+    ipc.send("data.toggle_pause_stopwatch");
+    //clearInterval(intervalId);
+
+    if(pause_state)
+        pauseBtn.textContent = "➡️ Continar";
+    else
+        pauseBtn.textContent = "⏸️ Pausar";
+    
+    pause_state = !pause_state;
+    //updateButtonStates({ start: false, pause: true });
 }
 
 // Reset the timer
 function resetTimer() {
-    clearInterval(intervalId);
-    elapsedTime = 0;
-    display.textContent = '00:00:00';
-    updateButtonStates({ start: false, pause: true, reset: true });
+    ipc.send("data.create_stopwatch", true);
+    //clearInterval(intervalId);
+    //elapsedTime = 0;
+    //display.textContent = '00:00:00';
+    //updateButtonStates({ start: false, pause: true, reset: true });
 }
+
+setInterval(() => {
+    if(currentView !== "cronometro")
+        return;
+
+    const time_got = ipc.sendSync("data.get_stopwatch");
+    if(time_got === null)
+    {
+        display.textContent = formatTime(0);
+        return
+    }
+    display.textContent = formatTime(time_got);
+}, 200)
 
 // Update button states
 function updateButtonStates({ start, pause, reset }) {
+
     startBtn.disabled = start;
     pauseBtn.disabled = pause;
     resetBtn.disabled = reset;
@@ -141,32 +366,64 @@ startBtn.addEventListener('click', startTimer);
 pauseBtn.addEventListener('click', pauseTimer);
 resetBtn.addEventListener('click', resetTimer);
 
-// Form submissions
-document.getElementById('rotinaForm').addEventListener('submit', e => {
+document.getElementById('rotinaForm').addEventListener('submit',
+    // Form submissions
+    /**
+     * @param {string} rotinaHorario
+     */
+    e => {
     e.preventDefault();
 
     const rotinaNome = document.getElementById('rotinaNome').value;
-    const rotinaDescricao = document.getElementById('rotinaDescricao').value || 'Sem descrição';
+    const rotinaDescricao = document.getElementById('rotinaDescricao').value || '';
     const rotinaDias = Array.from(document.querySelectorAll('input[name="dias"]:checked'))
-    .map(input => input.value)
-    .join(', ') || 'Sem dias selecionados';
+    .map(input => toWeekDayNum(input.value))
+    //.join(', ') || 'Sem dias selecionados';
+    console.log(rotinaDias);
+    /**
+     * @type {string}
+     */
     const rotinaHorario = document.getElementById('rotinaHorario').value;
+    const horario_elems = rotinaHorario.split(':');
 
     // Todo: Criar nova rotina
-    alert(`Rotina:\nNome: ${rotinaNome}\nDescrição: ${rotinaDescricao}\nDias: ${rotinaDias}\nHorário: ${rotinaHorario}`);
+    //alert(`Rotina:\nNome: ${rotinaNome}\nDescrição: ${rotinaDescricao}\nDias: ${rotinaDias}\nHorário: ${rotinaHorario}`);
+    //console.log([rotinaNome, rotinaDescricao, rotinaDias, Number.parseInt(horario_elems[0]), Number.parseInt(horario_elems[1])]);
+    ipc.sendSync("data.create_routine", rotinaNome, rotinaDescricao, rotinaDias, Number.parseInt(horario_elems[0]), Number.parseInt(horario_elems[1]));
+
+    if(editing_routine != null)
+        ipc.sendSync("data.remove_routine", editing_routine.id);
     showView('rotinas');
 });
 
 document.getElementById('lembreteForm').addEventListener('submit', e => {
     e.preventDefault();
 
+    /**
+     * @type {string}
+     */
     const lembreteTitulo = document.getElementById('lembreteTitulo').value;
-    const lembreteDescricao = document.getElementById('lembreteDescricao').value || 'Sem descrição';
+    /**
+     * @type {string}
+     */
+    const lembreteDescricao = document.getElementById('lembreteDescricao').value || '';
+    /**
+     * @type {string}
+     */
     const lembreteData = document.getElementById('lembreteData').value;
+    const date_elems = lembreteData.split('-');
+    /**
+     * @type {string}
+     */
     const lembreteHorario = document.getElementById('lembreteHorario').value;
+    const reminder_time = lembreteHorario.split(':');
 
     // Todo: Criar novo lembrete
-    alert(`Lembrete:\nTítulo: ${lembreteTitulo}\nDescrição: ${lembreteDescricao}\nData: ${lembreteData}\nHorário: ${lembreteHorario}`);
+    ipc.send("data.create_reminder", lembreteTitulo, lembreteDescricao, Number.parseInt(date_elems[0]), Number.parseInt(date_elems[1]), Number.parseInt(date_elems[2]), Number.parseInt(reminder_time[0]), Number.parseInt(reminder_time[1]));
+    //alert(`Lembrete:\nTítulo: ${lembreteTitulo}\nDescrição: ${lembreteDescricao}\nData: ${lembreteData}\nHorário: ${lembreteHorario}`);
+
+    if(editing_reminder != null)
+        ipc.sendSync("data.remove_reminder", editing_reminder.id);
     showView('lembretes');
 });
 /**
@@ -187,30 +444,71 @@ function toWeekDay(dayNum)
 
     switch(dayNum)
     {
-        case 1:
+        case 0:
             result = "Dom"
             break;
-        case 2:
+        case 1:
             result = "Seg"
             break;
-        case 3:
+        case 2:
             result = "Ter"
             break;
-        case 4:
+        case 3:
             result = "Qua"
             break;
-        case 5:
+        case 4:
             result = "Qui"
             break;
-        case 6:
+        case 5:
             result = "Sex"
             break;
-        case 7:
+        case 6:
             result = "Sab"
             break;
     }
 
     return result;
+}
+
+function toWeekDayNum(dayNum)
+{
+    let result;
+
+    switch(dayNum)
+    {
+        case "Dom":
+            result = 0
+            break;
+        case "Seg":
+            result = 1
+            break;
+        case "Ter":
+            result = 2
+            break;
+        case "Qua":
+            result = 3
+            break;
+        case "Qui":
+            result = 4
+            break;
+        case "Sex":
+            result = 5
+            break;
+        case "Sab":
+            result = 6
+            break;
+    }
+
+    return result;
+}
+/**
+ * 
+ * @param {number} num 
+ * @returns 
+ */
+function toDoubleDigit(num)
+{
+    return (num > 10 ? num.toString() : ("0" + num))
 }
 
 function getRoutines()

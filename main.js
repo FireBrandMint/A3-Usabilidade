@@ -3,6 +3,7 @@ const app = electron.app;
 const BrowserWindow = electron.BrowserWindow;
 const path = require("path");
 const url = require("url");
+const protocol = electron.protocol;
 const ipc = electron.ipcMain;
 const data_manager = require('./js/data_manager');
 
@@ -16,6 +17,11 @@ beforeReady();
 var STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
 var ARGUMENT_NAMES = /([^\s,]+)/g;
 
+/**
+ * @type {Electron.BrowserWindow}
+ */
+let mainWindow;
+
 //Initialization functions
 
 /**
@@ -23,10 +29,10 @@ var ARGUMENT_NAMES = /([^\s,]+)/g;
  */
 function beforeReady()
 {
+    protocol.registerSchemesAsPrivileged
+
     let func_names = Object.getOwnPropertyNames(data_commands_prototype).filter((val) => val != "constructor");
 
-
-    console.log("hello?");
     for(var i in func_names)
     {
         const func_name = func_names[i];
@@ -53,7 +59,10 @@ function beforeReady()
 
     app.on('window-all-closed', () => {
         if (process.platform !== 'darwin')
+        {
             app.quit();
+            data_commands.save();
+        }
     });
 
     app.on('activate', () => {
@@ -71,9 +80,38 @@ function onReady()
 }
 
 //Pushes alarm notification to the UI.
-function pushTimeNotification(data)
+async function pushTimeNotification(data)
 {
-    
+    if(data.type === "reminder")
+        mainWindow.webContents.send("reminder_updated");
+
+    console.log("notif should appear");
+
+    win = new BrowserWindow({
+    width: 600,
+    height: 525,
+    parent: mainWindow,
+    modal: true,
+    webPreferences: {
+        //preload: path.join(__dirname, 'js', 'notutil.js'),
+        nodeIntegration: true,
+        contextIsolation: false,
+        plugins: true,
+        parent: mainWindow
+    }
+    });
+
+    win.setAlwaysOnTop(true);
+
+    //win.openDevTools();
+
+    await win.loadURL(url.format( {
+        pathname: path.join(__dirname, 'web-stuff', 'notification.html'),
+        protocol: 'file',
+        slashes: true
+    }))
+
+    win.webContents.send('receive-data', data, path.join(get_resources_path(), "default_alarm.mp3"));
 }
 
 //Functions that are called elsewhere
@@ -93,7 +131,8 @@ function createWindow() {
     win.loadURL(url.format( {
         pathname: path.join(__dirname, 'web-stuff', 'homepage.html'),
         protocol: 'file',
-        slashes: true
+        slashes: true,
+        backgroundThrottling: false
     } ));
 
     win.on('closed', () => {
@@ -101,7 +140,8 @@ function createWindow() {
     });
 
     //win.removeMenu();
-    win.webContents.openDevTools();
+    //win.webContents.openDevTools();
+    mainWindow = win;
 }
 
 /**
@@ -116,4 +156,10 @@ function get_param_names(func) {
   if(result === null)
      result = [];
   return result;
+}
+
+function get_resources_path()
+{
+    
+    return path.join(__dirname, 'asset');
 }
